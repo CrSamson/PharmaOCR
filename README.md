@@ -1,11 +1,11 @@
 # PharmaOCR
 
-Streamlit app for extracting text from pharmaceutical PDF documents using IBM Granite-Docling 258M.
+Streamlit app for extracting text from pharmaceutical PDF documents using IBM Granite Vision 2B.
 
 ## Features
 
 - PDF upload via web interface
-- OCR extraction powered by Granite-Docling (258M parameters)
+- OCR extraction powered by Granite 3.2 Vision (2B parameters)
 - Per-page text extraction with confidence scoring
 - Hallucination detection (repeated line filtering)
 - Processing time tracking with step-by-step progress bar
@@ -38,7 +38,7 @@ pip install -r requirements.txt
 1. Download and install [Ollama](https://ollama.com/download/windows)
 2. Pull the model:
    ```bash
-   ollama pull ibm/granite-docling:258m
+   ollama pull granite3.2-vision:2b
    ```
 3. Ollama runs as a background service on `localhost:11434`
 
@@ -52,7 +52,7 @@ streamlit run main.py
 
 ## Tech Stack
 
-- **Model**: [ibm-granite/granite-docling-258M](https://huggingface.co/ibm-granite/granite-docling-258M)
+- **Model**: [Granite 3.2 Vision 2B](https://huggingface.co/ibm-granite/granite-3.2-2b-vision-preview) via Ollama
 - **Pipeline**: [Docling](https://github.com/docling-project/docling) VLM pipeline
 - **Frontend**: Streamlit
 - **Runtime**: [Ollama](https://ollama.com) (default) or PyTorch + Transformers

@@ -6,6 +6,6 @@ class ModelConfig:
     use_ollama: bool = False
 
 DEFAULT_CONFIG = ModelConfig(
-    preset = "granite_docling",
+    preset = "granite_vision",
     use_ollama = True
 )

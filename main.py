@@ -30,10 +30,19 @@ if uploaded_file is not None:
 
     status.code("[ STEP 3/4 ]  Running OCR inference...", language="text")
     result = convert_pdf(tmp_path, converter)
+    if not result or not result.document:
+        st.error("OCR conversion failed — no document returned.")
+        st.stop()
+    markdown = result.document.export_to_markdown()
+    if not markdown or not markdown.strip():
+        st.warning("OCR returned empty text. The document may not be readable.")
     progress.progress(80)
 
     status.code("[ STEP 4/4 ]  Building results...", language="text")
     document_result = build_document_result(result, uploaded_file.name)
+    if not document_result.pages:
+        st.error("No pages extracted from the document.")
+        st.stop()
     elapsed = time.time() - start
     progress.progress(100)
 

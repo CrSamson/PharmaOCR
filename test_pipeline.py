@@ -10,6 +10,15 @@ start  = time.time()
 converter = create_converter(DEFAULT_CONFIG)
 result = convert_pdf(str(pdf_path), converter)
 extracted_text = result.document.export_to_markdown()
+print("=== DEBUG ===")
+print("Markdown:", result.document.export_to_markdown()[:500])
+print("Number of items:", sum(1 for _ in result.document.iterate_items()))
+for item, level in result.document.iterate_items():
+    has_prov = hasattr(item, 'prov') and item.prov
+    text = getattr(item, 'text', None)
+    print(f"  type={type(item).__name__}  has_prov={has_prov}  text={text[:80] if text else 'None'}")
+print("=== END DEBUG ===")
+
 document_result = build_document_result(conv_result=result, filename="Test1.pdf")
 print(document_result.markdown)
 for page in document_result.pages:
