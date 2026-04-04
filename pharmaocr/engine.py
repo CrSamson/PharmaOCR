@@ -7,7 +7,11 @@ from pharmaocr.config import DEFAULT_CONFIG, ModelConfig
 
 def create_converter(config: ModelConfig) -> DocumentConverter:
     if config.use_ollama:
-        engine_options = ApiVlmEngineOptions(engine_type=VlmEngineType.API_OLLAMA)
+        engine_options = ApiVlmEngineOptions(
+            engine_type=VlmEngineType.API_OLLAMA,
+            url=config.ollama_url,
+            timeout=300.0
+        )
         vlm_options = VlmConvertOptions.from_preset(config.preset, engine_options=engine_options)
     else:
         vlm_options = VlmConvertOptions.from_preset(config.preset)
@@ -15,7 +19,8 @@ def create_converter(config: ModelConfig) -> DocumentConverter:
     vlm_options.scale = 1.0
 
     pipeline_options = VlmPipelineOptions(
-        vlm_options = vlm_options
+        vlm_options = vlm_options,
+        enable_remote_services = config.use_ollama
     )
     converter = DocumentConverter(
         format_options = {

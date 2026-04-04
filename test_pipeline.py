@@ -17,4 +17,3 @@ for page in document_result.pages:
 
 end = time.time()
 print(f"Processing time: {end - start} seconds")
-
