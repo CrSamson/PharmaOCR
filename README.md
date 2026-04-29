@@ -1,58 +1,73 @@
 # PharmaOCR
 
-Streamlit app for extracting text from pharmaceutical PDF documents using IBM Granite-Docling 258M.
+> Streamlit app that extracts text from pharmaceutical PDFs using a local vision-language model (IBM Granite-Docling 258M) running on Ollama.
 
-## Features
+## 🎯 Objective
 
-- PDF upload via web interface
-- OCR extraction powered by Granite-Docling (258M parameters)
-- Per-page text extraction with confidence scoring
-- Hallucination detection (repeated line filtering)
-- Processing time tracking with step-by-step progress bar
+Pharmaceutical documents (prescriptions, labels, package inserts) are often scanned PDFs whose text is locked inside images. PharmaOCR runs a small, locally-hosted VLM end-to-end on those PDFs — no cloud calls, no API keys — and returns clean, page-aware markdown plus a confidence panel so a reviewer can quickly spot pages that need re-OCR.
 
-## Project Structure
+## 🏗️ Architecture
+
+*PDF flows through Docling's VLM pipeline; Granite-Docling runs locally via Ollama; a deduplication pass strips repeated-line hallucinations before rendering.*
+
+```mermaid
+flowchart LR
+    A[PDF Upload<br/>Streamlit] --> B[Docling<br/>DocumentConverter]
+    B --> C[Granite-Docling 258M<br/>via Ollama]
+    C --> D[Per-Page Text<br/>Extraction]
+    D --> E[Dedup Filter<br/>repeated lines]
+    E --> F[Markdown + Per-Page<br/>Confidence Panel]
+```
+
+## 🛠️ Tech Stack
+
+- **VLM**: [ibm-granite/granite-docling-258M](https://huggingface.co/ibm-granite/granite-docling-258M) — 258M-parameter vision-language model
+- **OCR pipeline**: [Docling](https://github.com/docling-project/docling) `VlmPipeline` + `DocumentConverter`
+- **Local runtime**: [Ollama](https://ollama.com) (default, faster CPU inference) — falls back to PyTorch + Transformers
+- **Frontend**: Streamlit
+- **Data models**: Pydantic
+
+## 📊 Outcomes
+
+- Extracts page-level markdown from multi-page pharmaceutical PDFs without sending data to any external API.
+- Runs on CPU at usable latency thanks to Ollama (vs. the heavier PyTorch/Transformers path).
+- Filters Granite-Docling's most common failure mode (repeating the same line many times in a row) via a simple counter-based dedup pass in `pharmaocr/scoring.py`.
+
+> No formal accuracy benchmark has been committed yet — see *Limitations*.
+
+## 📁 Repository Structure
 
 ```
 PharmaOCR/
-├── main.py                  # Streamlit entry point
+├── main.py                      # Streamlit entry point + 4-step progress UI
 ├── pharmaocr/
-│   ├── config.py            # Model configuration
-│   ├── engine.py            # DocumentConverter + VLM pipeline
-│   ├── models.py            # Pydantic data models
-│   ├── scoring.py           # Confidence scoring + deduplication
-│   └── ui/
-│       └── components.py    # Streamlit UI components
-└── ressources/              # Sample PDFs
+│   ├── config.py                # ModelConfig (preset + ollama toggle)
+│   ├── engine.py                # Builds DocumentConverter w/ VlmPipeline
+│   ├── scoring.py               # Dedup + (placeholder) confidence grading
+│   ├── models.py                # Pydantic: PageResult, DocumentResult
+│   └── ui/components.py         # Streamlit upload / results / confidence panel
+├── test_pipeline.py             # Headless smoke test against a local PDF
+└── requirements.txt
 ```
 
-## Setup
+## 🚀 How to Run
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate       # Windows
+.venv\Scripts\activate            # Windows
 pip install -r requirements.txt
-```
 
-### Ollama (recommended for faster CPU inference)
+# Pull the model into Ollama (one-time)
+ollama pull ibm/granite-docling:258m
 
-1. Download and install [Ollama](https://ollama.com/download/windows)
-2. Pull the model:
-   ```bash
-   ollama pull ibm/granite-docling:258m
-   ```
-3. Ollama runs as a background service on `localhost:11434`
-
-To disable Ollama and use PyTorch/Transformers instead, set `use_ollama=False` in `pharmaocr/config.py`.
-
-## Run
-
-```bash
 streamlit run main.py
 ```
 
-## Tech Stack
+To bypass Ollama and run on PyTorch/Transformers directly, set `use_ollama=False` in [pharmaocr/config.py](pharmaocr/config.py).
 
-- **Model**: [ibm-granite/granite-docling-258M](https://huggingface.co/ibm-granite/granite-docling-258M)
-- **Pipeline**: [Docling](https://github.com/docling-project/docling) VLM pipeline
-- **Frontend**: Streamlit
-- **Runtime**: [Ollama](https://ollama.com) (default) or PyTorch + Transformers
+## 📝 Limitations
+
+- **Confidence scoring is currently a placeholder.** `pharmaocr/scoring.py` returns `confidence=0.0` / `grade=POOR` for every page. The UI panel is wired up but not yet meaningful — implementing real per-page confidence (e.g. from VLM token logprobs) is the next planned step.
+- **Hallucination filter is line-exact, not semantic.** It catches Granite-Docling's stutter pattern (same line repeated 3+ times) but won't flag plausible-but-wrong extractions.
+- **No committed benchmark.** Sample PDFs live under `ressources/` (gitignored). Adding a small public test set with ground-truth markdown is the right next move before claiming accuracy numbers.
+- **Local-only.** No cloud deployment — by design, since pharma documents are often sensitive — but it does mean each user needs Ollama installed.
